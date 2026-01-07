@@ -22,10 +22,10 @@ class UIScene extends Phaser.Scene {
                 trash: 0,
                 trashPerSecond: 0,
                 upgrades: {
-                    click: { level: 1, cost: 10 },
-                    volunteer: { level: 0, cost: 25 },
-                    trashCan: { level: 0, cost: 100 },
-                    conveyor: { level: 0, cost: 500 }
+                    click: { level: 1, cost: 15 },
+                    volunteer: { level: 0, cost: 50 },
+                    trashCan: { level: 0, cost: 500 },
+                    conveyor: { level: 0, cost: 2000 }
                 }
             };
         }
@@ -34,6 +34,8 @@ class UIScene extends Phaser.Scene {
         // Текст
         this.moneyText = this.add.text(10, 10, '', { fontSize: '24px', fill: '#fff' });
         this.trashText = this.add.text(10, 40, '', { fontSize: '24px', fill: '#fff' });
+        this.profitPerClickText = this.add.text(10, 70, '', { fontSize: '18px', fill: '#fff' });
+        this.profitPerSecondText = this.add.text(10, 100, '', { fontSize: '18px', fill: '#fff' });
 
         // Кнопка продажи
         const sellButton = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height - 50, 250, 50, 0x228B22).setInteractive();
@@ -71,9 +73,9 @@ class UIScene extends Phaser.Scene {
         this.trashCanUpgradeButton.on('pointerdown', () => this.buyUpgrade('trashCan'));
         this.conveyorUpgradeButton.on('pointerdown', () => this.buyUpgrade('conveyor'));
         resetButton.on('pointerdown', () => {
-            localStorage.removeItem('trashGodSave');
-            this.scene.get('GameScene').scene.restart();
-            this.scene.restart();
+            // Очищаем все сохранения и перезагружаем страницу для полного сброса
+            localStorage.clear();
+            window.location.reload();
         });
 
         // Глобальные события
@@ -120,14 +122,14 @@ class UIScene extends Phaser.Scene {
         if (this.gameData.money >= upgrade.cost) {
             this.gameData.money -= upgrade.cost;
             upgrade.level++;
-            upgrade.cost = Math.round(upgrade.cost * 1.5);
+            upgrade.cost = Math.round(upgrade.cost * 1.2);
 
             if (key === 'click') {
                 this.game.events.emit('upgradeClick');
             } else if (key === 'volunteer') {
                 this.gameData.trashPerSecond += 1;
             } else if (key === 'trashCan') {
-                this.gameData.trashPerSecond += 5;
+                this.gameData.trashPerSecond += 15;
             } else if (key === 'conveyor') {
                 this.startConveyor();
             }
@@ -141,7 +143,7 @@ class UIScene extends Phaser.Scene {
     startConveyor() {
         if (this.conveyorTimer) return; // Запускаем только один раз
         this.conveyorTimer = this.time.addEvent({
-            delay: 2000,
+            delay: 1000,
             callback: () => {
                 if (this.gameData.trash > 0) {
                     this.gameData.money += this.gameData.trash;
@@ -156,6 +158,8 @@ class UIScene extends Phaser.Scene {
     updateUIText() {
         this.moneyText.setText(`Деньги: ${this.gameData.money}`);
         this.trashText.setText(`Мусор: ${this.gameData.trash}`);
+        this.profitPerClickText.setText(`Прибыль с клика: ${this.gameData.upgrades.click.level}`);
+        this.profitPerSecondText.setText(`Прибыль в сек: ${this.gameData.trashPerSecond}`);
     }
 
     updateUpgradeText() {

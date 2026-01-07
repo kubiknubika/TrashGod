@@ -11,7 +11,7 @@ class GameScene extends Phaser.Scene {
         this.trashPerClick = 1;
 
         // Создаем "Кучу мусора" в центре экрана
-        let trashPile = this.add.circle(this.cameras.main.centerX, this.cameras.main.centerY, 100, 0x8B4513);
+        let trashPile = this.add.circle(this.cameras.main.width / 4, this.cameras.main.centerY, 100, 0x8B4513);
 
         // Делаем ее интерактивной
         trashPile.setInteractive();
