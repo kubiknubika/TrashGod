@@ -8,3 +8,7 @@ const config = {
     },
     scene: [GameScene, UIScene]
 };
+
+window.addEventListener('load', () => {
+    const game = new Phaser.Game(config);
+});
