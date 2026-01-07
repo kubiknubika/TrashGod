@@ -11,28 +11,45 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        const { width, height } = this.scale;
+
         // --- 1. Фон ---
         if (this.textures.exists('bg_img')) {
-            this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, 'bg_img');
+            this.add.image(width / 2, height / 2, 'bg_img').setDisplaySize(width, height);
         }
 
         // --- 2. Куча мусора ---
         this.trashPerClick = 1;
 
+        const trashPileSize = Math.min(width, height) * 0.35;
+
         // Создаем "Кучу мусора" (спрайт или фигуру)
         if (this.textures.exists('trash_img')) {
-            this.trashPile = this.add.sprite(this.cameras.main.width / 4, this.cameras.main.centerY, 'trash_img');
+            this.trashPile = this.add.sprite(width * 0.25, height * 0.5, 'trash_img');
+            this.trashPile.setDisplaySize(trashPileSize, trashPileSize);
         } else {
-            this.trashPile = this.add.circle(this.cameras.main.width / 4, this.cameras.main.centerY, 100, 0x8B4513);
+            // Для круга радиус - это половина размера
+            this.trashPile = this.add.circle(width * 0.25, height * 0.5, trashPileSize / 2, 0x8B4513);
         }
 
         this.trashPile.setInteractive();
 
-        // --- 3. Обработчики событий ---
-        this.trashPile.on('pointerdown', () => {
-            // Отправляем события в UIScene
+        // --- 3. Генерация текстуры для частиц ---
+        this.make.graphics({ fillStyle: { color: 0xffffff } })
+            .fillCircle(4, 4, 4)
+            .generateTexture('particle', 8, 8);
+
+        // --- 4. Обработчики событий ---
+        this.trashPile.on('pointerdown', (pointer) => {
+            // 1. Показываем всплывающий текст и частицы
+            this.showFloatingText(`+${this.trashPerClick}`, pointer.x, pointer.y);
+            this.emitParticles(pointer.x, pointer.y);
+
+            // 2. Проигрываем звук
+            this.game.events.emit('playSound', 'sfx_click');
+
+            // 3. Отправляем событие в UIScene для обновления данных
             this.game.events.emit('collectTrash', this.trashPerClick);
-            this.game.events.emit('playSound', 'sfx_click'); // Событие для звука
 
             // Исправленная анимация
             if (this.trashPile.clickTween) {
@@ -59,19 +76,59 @@ class GameScene extends Phaser.Scene {
         this.game.events.on('dispatchTruck', this.dispatchTruck, this);
     }
 
+    emitParticles(x, y) {
+        const particles = this.add.particles('particle');
+        const emitter = particles.createEmitter({
+            speed: 100,
+            scale: { start: 1, end: 0 },
+            lifespan: 500,
+            blendMode: 'ADD'
+        });
+        emitter.explode(10, x, y);
+    }
+
+    showFloatingText(text, x, y) {
+        const style = {
+            fontFamily: '"Fredoka One", cursive',
+            fontSize: '32px',
+            fill: '#ADFF2F', // Ярко-зеленый
+            stroke: '#000',
+            strokeThickness: 6,
+            shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 3, fill: true }
+        };
+        const floatingText = this.add.text(x, y, text, style).setOrigin(0.5);
+
+        this.tweens.add({
+            targets: floatingText,
+            y: y - 80,
+            alpha: 0,
+            duration: 700,
+            ease: 'Power1',
+            onComplete: () => {
+                floatingText.destroy();
+            }
+        });
+    }
+
     dispatchTruck(trashAmount) {
+        const { width, height } = this.scale;
+        const truckSize = height * 0.15;
         let truck;
+
         // Создаем грузовик (спрайт или фигуру)
         if (this.textures.exists('truck_img')) {
-            truck = this.add.sprite(-100, this.cameras.main.centerY, 'truck_img');
+            truck = this.add.sprite(-truckSize, height * 0.5, 'truck_img');
+            // Масштабируем пропорционально, сохраняя соотношение сторон
+            truck.scale = truckSize / truck.height;
         } else {
-            truck = this.add.rectangle(-100, this.cameras.main.centerY, 100, 50, 0xff0000);
+            // Прямоугольник делаем в соотношении 2:1
+            truck = this.add.rectangle(-truckSize, height * 0.5, truckSize * 2, truckSize, 0xff0000);
         }
 
         // Анимируем движение
         this.tweens.add({
             targets: truck,
-            x: this.cameras.main.width + 100,
+            x: width + truckSize,
             duration: 2000,
             ease: 'Linear',
             onComplete: () => {

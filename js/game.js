@@ -8,5 +8,3 @@ const config = {
     },
     scene: [GameScene, UIScene]
 };
-
-window.game = new Phaser.Game(config);

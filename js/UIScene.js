@@ -27,9 +27,9 @@ class UIScene extends Phaser.Scene {
         this.load.image('icon_conveyor', 'assets/icon_conveyor.png');
 
         // Загружаем звуки
-        this.load.audio('sfx_click', 'assets/click.mp3');
-        this.load.audio('sfx_sell', 'assets/sell.mp3');
-        this.load.audio('sfx_buy', 'assets/buy.mp3');
+        this.load.audio('sfx_click', 'assets/click.wav');
+        this.load.audio('sfx_sell', 'assets/sell.wav');
+        this.load.audio('sfx_buy', 'assets/buy.wav');
     }
 
     create() {
@@ -51,63 +51,97 @@ class UIScene extends Phaser.Scene {
             };
         }
 
-        // --- 2. Создание всех UI-элементов ---
-        // Текст
-        this.moneyText = this.add.text(10, 10, '', { fontSize: '24px', fill: '#fff' });
-        this.trashText = this.add.text(10, 40, '', { fontSize: '24px', fill: '#fff' });
-        this.profitPerClickText = this.add.text(10, 70, '', { fontSize: '18px', fill: '#fff' });
-        this.profitPerSecondText = this.add.text(10, 100, '', { fontSize: '18px', fill: '#fff' });
+        // --- 2. Создание UI ---
+        this.setupResponsiveUI();
+
+        // Глобальные события
+    }
+
+    setupResponsiveUI() {
+        const { width, height } = this.scale;
+
+        const baseTextStyle = {
+            fontFamily: '"Fredoka One", cursive',
+            fill: '#fff',
+            stroke: '#000',
+            strokeThickness: 5,
+            shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 3, fill: true }
+        };
+
+        // --- Статистика ---
+        const fontSize = Math.min(width, height) * 0.04;
+        this.moneyText = this.add.text(width * 0.02, height * 0.02, '', { ...baseTextStyle, fontSize: `${fontSize}px` });
+        this.trashText = this.add.text(width * 0.02, height * 0.08, '', { ...baseTextStyle, fontSize: `${fontSize}px` });
+        this.profitPerClickText = this.add.text(width * 0.02, height * 0.14, '', { ...baseTextStyle, fontSize: `${fontSize * 0.75}px` });
+        this.profitPerSecondText = this.add.text(width * 0.02, height * 0.20, '', { ...baseTextStyle, fontSize: `${fontSize * 0.75}px` });
+
+        // --- Кнопки ---
+        const buttonHeight = height * 0.1;
+        const buttonWidth = width * 0.3;
 
         // Кнопка продажи
-        const sellButton = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height - 50, 250, 50, 0x228B22).setInteractive();
-        this.add.text(sellButton.x, sellButton.y, 'Продать/Переработать', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
+        const sellButton = this.add.rectangle(width / 2, height * 0.9, buttonWidth, buttonHeight, 0x228B22).setInteractive();
+        this.add.text(sellButton.x, sellButton.y, 'Продать', { ...baseTextStyle, fontSize: `${fontSize * 0.8}px` }).setOrigin(0.5);
         this.addButtonTweens(sellButton);
-
-        // Магазин
-        const shopX = this.cameras.main.width - 150;
-        this.clickUpgradeButton = this.add.rectangle(shopX, 50, 250, 50, 0x0000FF).setInteractive();
-        this.clickUpgradeText = this.add.text(shopX, 50, '', { fontSize: '16px', fill: '#fff' }).setOrigin(0.5);
-        this.addButtonTweens(this.clickUpgradeButton);
-
-        this.volunteerUpgradeButton = this.add.rectangle(shopX, 110, 250, 50, 0x0000FF).setInteractive();
-        this.volunteerUpgradeText = this.add.text(shopX, 110, '', { fontSize: '16px', fill: '#fff' }).setOrigin(0.5);
-        this.addButtonTweens(this.volunteerUpgradeButton);
-
-        this.trashCanUpgradeButton = this.add.rectangle(shopX, 170, 250, 50, 0x0000FF).setInteractive();
-        this.trashCanUpgradeText = this.add.text(shopX, 170, '', { fontSize: '16px', fill: '#fff' }).setOrigin(0.5);
-        this.addButtonTweens(this.trashCanUpgradeButton);
-
-        this.conveyorUpgradeButton = this.add.rectangle(shopX, 230, 250, 50, 0x0000FF).setInteractive();
-        this.conveyorUpgradeText = this.add.text(shopX, 230, '', { fontSize: '16px', fill: '#fff' }).setOrigin(0.5);
-        this.addButtonTweens(this.conveyorUpgradeButton);
-
-        // Кнопка сброса
-        const resetButton = this.add.rectangle(80, this.cameras.main.height - 40, 100, 40, 0xFF0000).setInteractive();
-        this.add.text(resetButton.x, resetButton.y, 'RESET', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
-        this.addButtonTweens(resetButton);
-
-        // --- 3. Назначение обработчиков и восстановление состояния ---
-        // Обработчики кнопок
         sellButton.on('pointerdown', () => {
             if (this.gameData.trash > 0) {
                 const trashToSell = this.gameData.trash;
                 this.gameData.trash = 0;
-                this.game.events.emit('dispatchTruck', trashToSell); // Отправляем грузовик
-                this.updateUIText();
+                this.game.events.emit('dispatchTruck', trashToSell);
+                this.updateUI();
             }
         });
-        this.clickUpgradeButton.on('pointerdown', () => this.buyUpgrade('click'));
-        this.volunteerUpgradeButton.on('pointerdown', () => this.buyUpgrade('volunteer'));
-        this.trashCanUpgradeButton.on('pointerdown', () => this.buyUpgrade('trashCan'));
-        this.conveyorUpgradeButton.on('pointerdown', () => this.buyUpgrade('conveyor'));
+
+        // Кнопка сброса
+        const resetButton = this.add.rectangle(width * 0.1, height * 0.9, buttonWidth * 0.6, buttonHeight, 0xFF0000).setInteractive();
+        this.add.text(resetButton.x, resetButton.y, 'RESET', { ...baseTextStyle, fontSize: `${fontSize * 0.8}px` }).setOrigin(0.5);
+        this.addButtonTweens(resetButton);
         resetButton.on('pointerdown', () => {
-            // Очищаем все сохранения и перезапускаем сцены для полного сброса
             localStorage.clear();
             this.scene.start('GameScene');
-            this.scene.start('UIScene'); // Используем start, чтобы гарантированно пройти через preload и create
+            this.scene.start('UIScene');
         });
 
-        // Глобальные события
+        // --- Магазин ---
+        const upgrades = [
+            { key: 'click', name: 'Перчатки', icon: 'icon_glove' },
+            { key: 'volunteer', name: 'Волонтер', icon: 'icon_volunteer' },
+            { key: 'trashCan', name: 'Бак', icon: 'icon_bin' },
+            { key: 'conveyor', name: 'Конвейер', icon: 'icon_conveyor' },
+        ];
+
+        const shopX = width * 0.75;
+        const shopButtonHeight = height * 0.15;
+        const shopButtonWidth = width * 0.4;
+        let startY = height * 0.1;
+
+        this.upgradeButtons = {};
+
+        upgrades.forEach((upgrade, index) => {
+            const buttonY = startY + index * (shopButtonHeight + height * 0.02);
+
+            const container = this.add.container(shopX, buttonY);
+
+            const background = this.add.rectangle(0, 0, shopButtonWidth, shopButtonHeight, 0x0000FF);
+            container.add(background);
+
+            if (this.textures.exists(upgrade.icon)) {
+                const icon = this.add.sprite(-shopButtonWidth * 0.3, 0, upgrade.icon);
+                // Масштабируем иконку, чтобы она влезла
+                icon.scale = Math.min(shopButtonHeight / icon.height, shopButtonWidth * 0.4 / icon.width) * 0.8;
+                container.add(icon);
+            }
+
+            const text = this.add.text(shopButtonWidth * 0.1, 0, '', { ...baseTextStyle, fontSize: `${fontSize * 0.7}px`, align: 'center' }).setOrigin(0.5);
+            container.add(text);
+
+            container.setSize(shopButtonWidth, shopButtonHeight).setInteractive();
+            this.addButtonTweens(container);
+
+            container.on('pointerdown', () => this.buyUpgrade(upgrade.key));
+
+            this.upgradeButtons[upgrade.key] = { container, text, background };
+        });
         this.game.events.on('collectTrash', (amount) => {
             this.gameData.trash += amount;
             this.updateUIText();
@@ -118,7 +152,7 @@ class UIScene extends Phaser.Scene {
         this.game.events.on('addMoney', (amount) => {
             this.gameData.money += amount;
             this.playSound('sfx_sell');
-            this.updateUIText();
+            this.updateUI();
         }, this);
 
 
@@ -131,8 +165,7 @@ class UIScene extends Phaser.Scene {
         this.applyLoadedState();
 
         // Первичное обновление UI
-        this.updateUIText();
-        this.updateUpgradeText();
+        this.updateUI();
 
         this.isCreated = true;
     }
@@ -151,7 +184,7 @@ class UIScene extends Phaser.Scene {
     produceTrash() {
         if (this.gameData.trashPerSecond > 0) {
             this.gameData.trash += this.gameData.trashPerSecond;
-            this.updateUIText();
+            this.updateUI();
         }
     }
 
@@ -173,8 +206,7 @@ class UIScene extends Phaser.Scene {
             }
 
             this.playSound('sfx_buy'); // Воспроизводим звук покупки
-            this.updateUIText();
-            this.updateUpgradeText();
+            this.updateUI();
             this.saveProgress();
         }
     }
@@ -195,7 +227,7 @@ class UIScene extends Phaser.Scene {
                     const trashToSell = this.gameData.trash;
                     this.gameData.trash = 0;
                     this.game.events.emit('dispatchTruck', trashToSell); // Отправляем грузовик
-                    this.updateUIText();
+                    this.updateUI();
                 }
             },
             loop: true
@@ -203,56 +235,48 @@ class UIScene extends Phaser.Scene {
     }
 
     updateUIText() {
+        if (!this.isCreated) return;
         this.moneyText.setText(`Деньги: ${this.gameData.money}`);
         this.trashText.setText(`Мусор: ${this.gameData.trash}`);
         this.profitPerClickText.setText(`Прибыль с клика: ${this.gameData.upgrades.click.level}`);
         this.profitPerSecondText.setText(`Прибыль в сек: ${this.gameData.trashPerSecond}`);
     }
 
-    updateUpgradeText() {
-        this.clickUpgradeText.setText(`Укр. перчатки (${this.gameData.upgrades.click.cost})`);
-        this.volunteerUpgradeText.setText(`Волонтер (${this.gameData.upgrades.volunteer.cost})`);
-        this.trashCanUpgradeText.setText(`Мусорный бак (${this.gameData.upgrades.trashCan.cost})`);
-        if (this.gameData.upgrades.conveyor.level === 0) {
-            this.conveyorUpgradeText.setText(`Конвейер (${this.gameData.upgrades.conveyor.cost})`);
-        } else {
-            this.conveyorUpgradeText.setText('Конвейер (Куплено)');
-        }
-    }
+    updateUI() {
+        if (!this.isCreated) return;
+        // Обновляем текст статистики
+        this.updateUIText();
 
-    updateButtonsState() {
+        // Обновляем кнопки магазина
         const money = this.gameData.money;
 
-        // Кнопка улучшения клика
+        // Перчатки
+        const clickButton = this.upgradeButtons.click;
         const clickUpgrade = this.gameData.upgrades.click;
-        if (money >= clickUpgrade.cost) {
-            this.clickUpgradeButton.setAlpha(1).setInteractive();
-        } else {
-            this.clickUpgradeButton.setAlpha(0.5).disableInteractive();
-        }
+        clickButton.text.setText(`Перчатки\n(${clickUpgrade.cost})`);
+        clickButton.container.setAlpha(money >= clickUpgrade.cost ? 1 : 0.5);
 
-        // Кнопка волонтера
+        // Волонтер
+        const volunteerButton = this.upgradeButtons.volunteer;
         const volunteerUpgrade = this.gameData.upgrades.volunteer;
-        if (money >= volunteerUpgrade.cost) {
-            this.volunteerUpgradeButton.setAlpha(1).setInteractive();
-        } else {
-            this.volunteerUpgradeButton.setAlpha(0.5).disableInteractive();
-        }
+        volunteerButton.text.setText(`Волонтер\n(${volunteerUpgrade.cost})`);
+        volunteerButton.container.setAlpha(money >= volunteerUpgrade.cost ? 1 : 0.5);
 
-        // Кнопка мусорного бака
+        // Бак
+        const trashCanButton = this.upgradeButtons.trashCan;
         const trashCanUpgrade = this.gameData.upgrades.trashCan;
-        if (money >= trashCanUpgrade.cost) {
-            this.trashCanUpgradeButton.setAlpha(1).setInteractive();
-        } else {
-            this.trashCanUpgradeButton.setAlpha(0.5).disableInteractive();
-        }
+        trashCanButton.text.setText(`Бак\n(${trashCanUpgrade.cost})`);
+        trashCanButton.container.setAlpha(money >= trashCanUpgrade.cost ? 1 : 0.5);
 
-        // Кнопка конвейера
+        // Конвейер
+        const conveyorButton = this.upgradeButtons.conveyor;
         const conveyorUpgrade = this.gameData.upgrades.conveyor;
-        if (money >= conveyorUpgrade.cost && conveyorUpgrade.level === 0) {
-            this.conveyorUpgradeButton.setAlpha(1).setInteractive();
+        if (conveyorUpgrade.level === 0) {
+            conveyorButton.text.setText(`Конвейер\n(${conveyorUpgrade.cost})`);
+            conveyorButton.container.setAlpha(money >= conveyorUpgrade.cost ? 1 : 0.5);
         } else {
-            this.conveyorUpgradeButton.setAlpha(0.5).disableInteractive();
+            conveyorButton.text.setText('Конвейер\n(Куплено)');
+            conveyorButton.container.setAlpha(0.5);
         }
     }
 
@@ -274,7 +298,7 @@ class UIScene extends Phaser.Scene {
 
     update() {
         if (this.isCreated) {
-            this.updateButtonsState();
+            this.updateUI();
         }
     }
 }
