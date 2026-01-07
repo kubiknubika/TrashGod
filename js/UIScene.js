@@ -181,7 +181,7 @@ class UIScene extends Phaser.Scene {
 
     playSound(key) {
         // Проверяем, существует ли звук в кэше, прежде чем проигрывать
-        if (this.sound.exists(key)) {
+        if (this.cache.audio.exists(key)) {
             this.sound.play(key);
         }
     }
