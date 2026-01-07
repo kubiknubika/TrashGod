@@ -175,33 +175,33 @@ class UIScene extends Phaser.Scene {
         // Кнопка улучшения клика
         const clickUpgrade = this.gameData.upgrades.click;
         if (money >= clickUpgrade.cost) {
-            this.clickUpgradeButton.clearTint().setInteractive();
+            this.clickUpgradeButton.setAlpha(1).setInteractive();
         } else {
-            this.clickUpgradeButton.setTint(0x808080).disableInteractive();
+            this.clickUpgradeButton.setAlpha(0.5).disableInteractive();
         }
 
         // Кнопка волонтера
         const volunteerUpgrade = this.gameData.upgrades.volunteer;
         if (money >= volunteerUpgrade.cost) {
-            this.volunteerUpgradeButton.clearTint().setInteractive();
+            this.volunteerUpgradeButton.setAlpha(1).setInteractive();
         } else {
-            this.volunteerUpgradeButton.setTint(0x808080).disableInteractive();
+            this.volunteerUpgradeButton.setAlpha(0.5).disableInteractive();
         }
 
         // Кнопка мусорного бака
         const trashCanUpgrade = this.gameData.upgrades.trashCan;
         if (money >= trashCanUpgrade.cost) {
-            this.trashCanUpgradeButton.clearTint().setInteractive();
+            this.trashCanUpgradeButton.setAlpha(1).setInteractive();
         } else {
-            this.trashCanUpgradeButton.setTint(0x808080).disableInteractive();
+            this.trashCanUpgradeButton.setAlpha(0.5).disableInteractive();
         }
 
         // Кнопка конвейера
         const conveyorUpgrade = this.gameData.upgrades.conveyor;
         if (money >= conveyorUpgrade.cost && conveyorUpgrade.level === 0) {
-            this.conveyorUpgradeButton.clearTint().setInteractive();
+            this.conveyorUpgradeButton.setAlpha(1).setInteractive();
         } else {
-            this.conveyorUpgradeButton.setTint(0x808080).disableInteractive();
+            this.conveyorUpgradeButton.setAlpha(0.5).disableInteractive();
         }
     }
 
