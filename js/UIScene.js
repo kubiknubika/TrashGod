@@ -7,8 +7,29 @@ class UIScene extends Phaser.Scene {
     //     // Можно использовать для получения данных из других сцен
     // }
 
+    addButtonTweens(button) {
+        button.on('pointerdown', () => {
+            button.setScale(0.95);
+        });
+        button.on('pointerup', () => {
+            button.setScale(1);
+        });
+        button.on('pointerout', () => {
+            button.setScale(1);
+        });
+    }
+
     preload() {
-        // Здесь будут загружаться ассеты для UI
+        // Загружаем иконки для кнопок
+        this.load.image('icon_glove', 'assets/icon_glove.png');
+        this.load.image('icon_volunteer', 'assets/icon_volunteer.png');
+        this.load.image('icon_bin', 'assets/icon_bin.png');
+        this.load.image('icon_conveyor', 'assets/icon_conveyor.png');
+
+        // Загружаем звуки
+        this.load.audio('sfx_click', 'assets/click.mp3');
+        this.load.audio('sfx_sell', 'assets/sell.mp3');
+        this.load.audio('sfx_buy', 'assets/buy.mp3');
     }
 
     create() {
@@ -40,31 +61,38 @@ class UIScene extends Phaser.Scene {
         // Кнопка продажи
         const sellButton = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height - 50, 250, 50, 0x228B22).setInteractive();
         this.add.text(sellButton.x, sellButton.y, 'Продать/Переработать', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
+        this.addButtonTweens(sellButton);
 
         // Магазин
         const shopX = this.cameras.main.width - 150;
         this.clickUpgradeButton = this.add.rectangle(shopX, 50, 250, 50, 0x0000FF).setInteractive();
         this.clickUpgradeText = this.add.text(shopX, 50, '', { fontSize: '16px', fill: '#fff' }).setOrigin(0.5);
+        this.addButtonTweens(this.clickUpgradeButton);
 
         this.volunteerUpgradeButton = this.add.rectangle(shopX, 110, 250, 50, 0x0000FF).setInteractive();
         this.volunteerUpgradeText = this.add.text(shopX, 110, '', { fontSize: '16px', fill: '#fff' }).setOrigin(0.5);
+        this.addButtonTweens(this.volunteerUpgradeButton);
 
         this.trashCanUpgradeButton = this.add.rectangle(shopX, 170, 250, 50, 0x0000FF).setInteractive();
         this.trashCanUpgradeText = this.add.text(shopX, 170, '', { fontSize: '16px', fill: '#fff' }).setOrigin(0.5);
+        this.addButtonTweens(this.trashCanUpgradeButton);
 
         this.conveyorUpgradeButton = this.add.rectangle(shopX, 230, 250, 50, 0x0000FF).setInteractive();
         this.conveyorUpgradeText = this.add.text(shopX, 230, '', { fontSize: '16px', fill: '#fff' }).setOrigin(0.5);
+        this.addButtonTweens(this.conveyorUpgradeButton);
 
         // Кнопка сброса
         const resetButton = this.add.rectangle(80, this.cameras.main.height - 40, 100, 40, 0xFF0000).setInteractive();
         this.add.text(resetButton.x, resetButton.y, 'RESET', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
+        this.addButtonTweens(resetButton);
 
         // --- 3. Назначение обработчиков и восстановление состояния ---
         // Обработчики кнопок
         sellButton.on('pointerdown', () => {
             if (this.gameData.trash > 0) {
-                this.gameData.money += this.gameData.trash;
+                const trashToSell = this.gameData.trash;
                 this.gameData.trash = 0;
+                this.game.events.emit('dispatchTruck', trashToSell); // Отправляем грузовик
                 this.updateUIText();
             }
         });
@@ -73,9 +101,10 @@ class UIScene extends Phaser.Scene {
         this.trashCanUpgradeButton.on('pointerdown', () => this.buyUpgrade('trashCan'));
         this.conveyorUpgradeButton.on('pointerdown', () => this.buyUpgrade('conveyor'));
         resetButton.on('pointerdown', () => {
-            // Очищаем все сохранения и перезагружаем страницу для полного сброса
+            // Очищаем все сохранения и перезапускаем сцены для полного сброса
             localStorage.clear();
-            window.location.reload();
+            this.scene.start('GameScene');
+            this.scene.start('UIScene'); // Используем start, чтобы гарантированно пройти через preload и create
         });
 
         // Глобальные события
@@ -83,6 +112,15 @@ class UIScene extends Phaser.Scene {
             this.gameData.trash += amount;
             this.updateUIText();
         }, this);
+
+        this.game.events.on('playSound', this.playSound, this); // Слушаем событие и вызываем хелпер
+
+        this.game.events.on('addMoney', (amount) => {
+            this.gameData.money += amount;
+            this.playSound('sfx_sell');
+            this.updateUIText();
+        }, this);
+
 
         // --- 4. Запуск таймеров и первоначальное обновление UI ---
         // Таймеры
@@ -134,9 +172,17 @@ class UIScene extends Phaser.Scene {
                 this.startConveyor();
             }
 
+            this.playSound('sfx_buy'); // Воспроизводим звук покупки
             this.updateUIText();
             this.updateUpgradeText();
             this.saveProgress();
+        }
+    }
+
+    playSound(key) {
+        // Проверяем, существует ли звук в кэше, прежде чем проигрывать
+        if (this.sound.exists(key)) {
+            this.sound.play(key);
         }
     }
 
@@ -146,8 +192,9 @@ class UIScene extends Phaser.Scene {
             delay: 1000,
             callback: () => {
                 if (this.gameData.trash > 0) {
-                    this.gameData.money += this.gameData.trash;
+                    const trashToSell = this.gameData.trash;
                     this.gameData.trash = 0;
+                    this.game.events.emit('dispatchTruck', trashToSell); // Отправляем грузовик
                     this.updateUIText();
                 }
             },
