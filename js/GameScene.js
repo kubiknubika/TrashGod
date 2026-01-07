@@ -20,12 +20,22 @@ class GameScene extends Phaser.Scene {
         trashPile.on('pointerdown', () => {
             // Отправляем событие в UIScene
             this.game.events.emit('collectTrash', this.trashPerClick);
+
+            // Анимация пружины
+            this.tweens.add({
+                targets: trashPile,
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 100,
+                yoyo: true,
+                ease: 'Power1'
+            });
         });
 
         // Слушаем событие улучшения клика
-        this.game.events.on('upgradeClick', () => {
-            this.trashPerClick++;
-        });
+        this.game.events.on('upgradeClick', (level) => {
+            this.trashPerClick = 1 + level;
+        }, this);
     }
 
     update() {
